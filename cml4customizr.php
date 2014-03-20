@@ -17,24 +17,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Cml4Customizr {
 	public function __construct() {
-		//Add slider strings in "My translations" page
-		add_filter( 'cml_my_translations', array( & $this, 'customizr_slider_strings' ), 10, 1 );
-		add_filter( 'cml_my_translations_hide_default', array( & $this, 'customizr_hide_default_language' ), 10, 1 );
+		add_filter( 'cml_addons', array( & $this, 'addon' ) );
 
-		//Translate group name
-		/*
-		 * Change customizr "meta key" with its real name.
-		 *  slide_title_key_2720 => "Slide Text"
-		 */
-		add_filter( 'cml_my_translations_label', array( & $this, 'customizr_slider_label' ), 10, 2 );
+		add_action( 'admin_init', array( & $this, 'add_meta_box' ) );
+		add_action( 'cml_addon_customizr_content', array( & $this, 'addon_content' ) );
+
+    add_action( 'admin_enqueue_scripts', array( & $this, 'enqueue_style' ) );
 
 		//Customizr frontend
 		add_filter( 'tc_slide_text', array( & $this, 'translate_slide_text' ), 10, 2 );
 		add_filter( 'tc_slide_button_text', array( & $this, 'translate_button_text' ), 10, 2 );
 		add_filter( 'tc_slide_title', array( & $this, 'translate_slide_title' ), 10, 2 );
 
+		//Url
+		add_filter( 'tc_slide_link_url', array( & $this, 'translate_link_url' ), 10, 2 );
+
 		//Notices
 		add_action( 'admin_notices', array( & $this, 'admin_notices' ) );
+
+		if( isset( $_POST[ 'add' ] ) ) {
+			add_action( 'admin_init', array( & $this, 'save' ) );
+		}
+	}
+
+	function addon( $addons ) {
+		$addon = array(
+									'addon' => 'customizr',
+									'title' => 'Customizr',
+									);
+		$addons[] = $addon;
+		return $addons;
+	}
+
+	function enqueue_style() {
+    wp_enqueue_style( 'cml-customizr-style', plugin_dir_url( __FILE__ ) . '/admin.css' );
+	}
+
+	function add_meta_box() {
+		add_meta_box( 'cml-box-addons', 
+									__( 'Customizr', 'cmlcustomizr' ), 
+									array( & $this, 'meta_box' ), 
+									'cml_box_addons_customizr' );
 	}
 
 	function admin_notices() {
@@ -71,83 +94,109 @@ EOT;
 
 	}
 
-	function customizr_hide_default_language( $arr ) {
-		$arr[] = "_customizr";
-
-		return $arr;
+	function meta_box() {
+?>
+	  <div id="minor-publishing">
+			<?php _e( 'Support to customizr theme', 'cmlcustomizr' ); ?>
+		</div>
+<?php
 	}
 
-	//Check all media with "slider_check_key" meta
-	function customizr_slider_strings( $types ) {
+	function addon_content() {
 		global $wpdb;
 
-		$query = "SELECT * FROM {$wpdb->postmeta} WHERE meta_key = 'slider_check_key'";
-		$results = $wpdb->get_results( $query );
+		require_once( "class-customizr.php" );
 
-		foreach( $results as $rec ) {
-			$keys = array( 'slide_title_key', 'slide_text_key', 'slide_button_key' );
-
-			foreach( $keys as $key ) {
-				$value = esc_attr( get_post_meta( $rec->post_id, $key, true ) );
-
-				CMLTranslations::add( "_customizr_{$key}_{$rec->post_id}",
-					$value, "_customizr" );
-			}
-		}
-
-		$types[ "_customizr" ] = "Customizr sliders";
-
-		return $types;
-	}
-
-	function customizr_slider_label( $label, $group ) {
-		if( "_customizr" !== $group ) return $label;
-
-		//Remove post id number
-		preg_match( "/_\d.*/", $label, $match );
-		$post_id = substr( $match[0], 1 );
-		$label = preg_replace( "/_\d.*/", "", $label );
-
-		//I can't use array_replace because it require php >= 5.3.0
-		$labels = array( 
-						'slide_title_key' => __( 'Slide Text', 'customizr' ),
-						'slide_text_key' => __( 'Description text', 'customizr' ),
-						'slide_button_key' => __( 'Button Text', 'customizr' ) );
-
-		$key = array_search( $label, $labels );
-		if( null !== $key ) {
-			$label = $labels[ $label ];
-		}
-
-		$title = get_the_title( $post_id );
-		return "$label ( $title )";
+    $table = new CMLCustomizr_Table();
+    $table->prepare_items();
+  
+    $table->display();
+?>
+      <div style="text-align:right">
+        <p class="submit" style="float: right">
+        <?php submit_button( __( 'Update', 'ceceppaml' ), "button-primary", "action", false, 'class="button button-primary"' ); ?>
+        </p>
+      </div>
+<?php
 	}
 
 	function translate_slide_text( $text, $id ) {
 		if( ! defined( 'CECEPPA_DB_VERSION' ) ||
 			CMLLanguage::is_default() ) return $text;
 
-		return CMLTranslations::get( CMLLanguage::get_current_id(),
+		$return = CMLTranslations::get( CMLLanguage::get_current_id(),
 										"_customizr_slide_text_key_{$id}",
 										"_customizr" );
+
+		return ( ! empty( $return ) ) ? $return : $text;
 	}
 
 	function translate_button_text( $text, $id ) {
 		if( ! defined( 'CECEPPA_DB_VERSION' ) ||
 			CMLLanguage::is_default() ) return $text;
 
-		return CMLTranslations::get( CMLLanguage::get_current_id(),
+		$return = CMLTranslations::get( CMLLanguage::get_current_id(),
 										"_customizr_slide_button_key_{$id}",
 										"_customizr" );
+
+		return ( ! empty( $return ) ) ? $return : $text;
 	}
 
 	function translate_slide_title( $text, $id ) {
 		if( ! defined( 'CECEPPA_DB_VERSION' ) ||
 			CMLLanguage::is_default() ) return $text;
 
-		return CMLTranslations::get( CMLLanguage::get_current_id(),
+		$return = CMLTranslations::get( CMLLanguage::get_current_id(),
 										"_customizr_slide_title_key_{$id}",
 										"_customizr" );
+
+		return ( ! empty( $return ) ) ? $return : $text;
+	}
+
+	function translate_link_url( $link, $id ) {
+		if( ! defined( 'CECEPPA_DB_VERSION' ) ) return $link;
+
+		//I need post id, not media $id...
+		$post_id = cml_get_page_id_by_path ( $link, array( 'post' ) );
+
+		//Look for pages
+		if( 0 == $post_id ) {
+			$post_id = cml_get_page_id_by_path ( $link, array( 'page' ) );
+		}
+
+		$lang = CMLPost::get_language_id_by_id( $post_id );
+
+		if( CMLLanguage::is_current( $lang ) ) return $link;
+
+		$linked = CMLPost::get_translation( CMLLanguage::get_current_id(), $post_id );
+		if( $linked == 0 ) return $link;
+
+		return get_permalink( $linked );
+	}
+
+	function save() {
+		if( ! wp_verify_nonce( $_POST[ "ceceppaml-nonce" ], "security" ) ) return;
+
+		$labels = array( 
+						'slide_title_key' => __( 'Slide Text', 'customizr' ),
+						'slide_text_key' => __( 'Description text', 'customizr' ),
+						'slide_button_key' => __( 'Button Text', 'customizr' ) );
+
+		$ids = $_POST[ 'id' ];
+		foreach( $ids as $id ) {
+			foreach( CMLLanguage::get_no_default() as $lang ) {
+				foreach ( $labels as $key => $label ) {
+					$value = @$_POST[ $key ][ $lang->id ][ $id ];
+
+					if( empty( $value ) ) continue;
+
+					CMLTranslations::set( $lang->id, 
+																"_customizr_{$key}_{$id}", 
+																$value,
+																"_customizr" );
+				}
+			}
+		}
 	}
 }
 
