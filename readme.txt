@@ -1,13 +1,13 @@
-=== Ceceppa Multilingua ===
+=== Ceceppa Multilingua support to Customizr ===
 Contributors: ceceppa
 Tags: multilingual, language, admin, tinymce, bilingual, widget, switcher, i18n, l10n, multilanguage, professional, translation, service, human, qtranslate, wpml, ztranslate, xtranslate, international, .mo file, .po file, localization, widget, post, customizr
 Requires at least: 3.4.1
 Tested up to: 3.9
-Stable tag: 0.1
+Stable tag: 0.2
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Plugin to make Ceceppa Multilingua work with Customizr.\nThis plugin required Ceceppa Multilingua >= 1.4.9
+Plugin to make Ceceppa Multilingua work with Customizr.
 
 == Description ==
 
@@ -16,6 +16,10 @@ This plugin allow user to translate "Customizr slider" with "Ceceppa Multilingua
 = Features =
 
 - Translate Customizr fields: Title text, Description text, Button text 
+
+= Requires =
+
+Ceceppa Multilingua >= 1.4.10
 
 == Installation ==
 
@@ -32,6 +36,9 @@ Installation of this plugin is fairly easy:
 == Screenshots ==
 
 == Changelog ==
+
+= 0.2 =
+* Fixed readme.txt
 
 = 0.1 =
 * Add Customizr slider support

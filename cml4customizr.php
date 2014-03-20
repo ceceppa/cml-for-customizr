@@ -3,7 +3,7 @@
 Plugin Name: Ceceppa Multilingua support for Customizr
 Plugin URI: http://www.ceceppa.eu/portfolio/ceceppa-multilingua/
 Description: Plugin to make Ceceppa Multilingua work with Customizr.\nThis plugin required Ceceppa Multilingua 1.4.10.
-Version: 0.1
+Version: 0.2
 Author: Alessandro Senese aka Ceceppa
 Author URI: http://www.alessandrosenese.eu/
 License: GPL3
