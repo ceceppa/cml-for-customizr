@@ -3,7 +3,7 @@ Contributors: ceceppa
 Tags: multilingual, language, admin, tinymce, bilingual, widget, switcher, i18n, l10n, multilanguage, professional, translation, service, human, qtranslate, wpml, ztranslate, xtranslate, international, .mo file, .po file, localization, widget, post, customizr
 Requires at least: 3.4.1
 Tested up to: 3.9
-Stable tag: 0.2
+Stable tag: 0.3
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -36,6 +36,12 @@ Installation of this plugin is fairly easy:
 == Screenshots ==
 
 == Changelog ==
+
+= 0.4 =
+* Added support to "Featured" pages
+
+= 0.3 =
+* Fixed links
 
 = 0.2 =
 * Fixed readme.txt

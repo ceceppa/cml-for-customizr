@@ -3,7 +3,7 @@
 Plugin Name: Ceceppa Multilingua support for Customizr
 Plugin URI: http://www.ceceppa.eu/portfolio/ceceppa-multilingua/
 Description: Plugin to make Ceceppa Multilingua work with Customizr.\nThis plugin required Ceceppa Multilingua 1.4.10.
-Version: 0.2
+Version: 0.3
 Author: Alessandro Senese aka Ceceppa
 Author URI: http://www.alessandrosenese.eu/
 License: GPL3
@@ -21,6 +21,7 @@ class Cml4Customizr {
 
 		add_action( 'admin_init', array( & $this, 'add_meta_box' ) );
 		add_action( 'cml_addon_customizr_content', array( & $this, 'addon_content' ) );
+		add_filter( 'cml_my_translations_hide_default', array( & $this, 'hide_default' ) );
 
     add_action( 'admin_enqueue_scripts', array( & $this, 'enqueue_style' ) );
 
@@ -28,6 +29,7 @@ class Cml4Customizr {
 		add_filter( 'tc_slide_text', array( & $this, 'translate_slide_text' ), 10, 2 );
 		add_filter( 'tc_slide_button_text', array( & $this, 'translate_button_text' ), 10, 2 );
 		add_filter( 'tc_slide_title', array( & $this, 'translate_slide_title' ), 10, 2 );
+		add_filter( 'tc_fp_button_text', array( & $this, 'translate_featured_button_text' ), 10, 2 );
 
 		//Url
 		add_filter( 'tc_slide_link_url', array( & $this, 'translate_link_url' ), 10, 2 );
@@ -35,8 +37,19 @@ class Cml4Customizr {
 		//Notices
 		add_action( 'admin_notices', array( & $this, 'admin_notices' ) );
 
+		//Home featured
+		add_filter( 'tc_fp_link_url', array( & $this, 'featured_link' ), 10, 2 );
+		add_filter( 'tc_fp_title', array( & $this, 'featured_title' ), 10, 3 );
+		add_filter( 'tc_fp_text', array( & $this, 'featured_text' ), 10, 3 );
+
 		if( isset( $_POST[ 'add' ] ) ) {
-			add_action( 'admin_init', array( & $this, 'save' ) );
+			$ctab = isset( $_GET[ 'ctab' ] ) ? intval( $_GET[ 'ctab' ] ) : 1;
+
+			if( $ctab == 1 ) {
+				add_action( 'admin_init', array( & $this, 'save_media' ) );
+			} else {
+				add_action( 'admin_init', array( & $this, 'save_featured' ) );
+			}
 		}
 	}
 
@@ -67,7 +80,10 @@ class Cml4Customizr {
 echo <<< EOT
 	<div class="error">
 		<p>
-			Ceceppa Multilingua for Customizr require Ceceppa Multilingua >= 1.4.9
+			<strong>Ceceppa Multilingua for Customizr</strong>
+			<br /><br />
+			Hi there!	I'm just an addon for Ceceppa Multilingua, I can't work alon, I require 
+			<a href="http://wordpress.org/plugins/ceceppa-multilingua/">Ceceppa Multilingua</a> >= 1.4.10
 		</p>
 	</div>
 EOT;
@@ -82,16 +98,20 @@ EOT;
 			$slider = get_post_meta( $id, 'slider_check_key', true );
 			if( 1 != $slider ) return;
 
-			$link = add_query_arg( array( 'page' => 'ceceppaml-translations-page' ), admin_url( 'admin.php' ) );
+			$link = add_query_arg( array( 'page' => 'ceceppaml-addons-page', 'tab' => 1 ), admin_url( 'admin.php' ) );
 echo <<< EOT
 	<div class="updated">
 		<p>
-			You can translate slider text in "Ceceppa Multilingua" -> "<a href="$link" target="_blank">My translations</a>" in "Customizr sliders" tab.
+			You can translate slider text in "Ceceppa Multilingua" -> "<a href="$link" target="_blank">Addons</a>" in "Customizr sliders" tab.
 		</p>
 	</div>
 EOT;
 		}
 
+		$msg = '<strong>Custmoizr addon</strong>';
+		$msg .= '<br /><br />';
+		$msg .= __( 'You can translate featured page options in "Ceceppa Multilingua" -> "Customizr" addon page', 'customizr' );
+		cml_admin_print_notice( "_cml_customizr_featured", $msg );
 	}
 
 	function meta_box() {
@@ -103,6 +123,34 @@ EOT;
 	}
 
 	function addon_content() {
+		$ctab = isset( $_GET[ 'ctab' ] ) ? intval( $_GET[ 'ctab' ] ) : 1;
+		$mactive = ( $ctab == 1 ) ? "nav-tab-active" : "";
+		$factive = ( $ctab == 2 ) ? "nav-tab-active" : "";
+
+echo <<< EOT
+		<h2 class="nav-tab-wrapper tab-strings">
+		&nbsp;
+	    <a class="nav-tab $mactive" href="?page=ceceppaml-addons-page&amp;tab=1&ctab=1">Media</a>
+      <a class="nav-tab $factive" href="?page=ceceppaml-addons-page&amp;tab=1&ctab=2">Featured</a>
+    </h2>
+EOT;
+		
+		if( $ctab == 1 ) {
+			$this->addon_content_media();
+		} else {
+			$this->addon_content_featured();
+		}
+?>
+			<input type="hidden" name="ctab" value="<?php echo $ctab ?>" />
+      <div style="text-align:right">
+        <p class="submit" style="float: right">
+        <?php submit_button( __( 'Update', 'ceceppaml' ), "button-primary", "action", false, 'class="button button-primary"' ); ?>
+        </p>
+      </div>
+<?php
+	}
+
+	function addon_content_media() {
 		global $wpdb;
 
 		require_once( "class-customizr.php" );
@@ -111,13 +159,29 @@ EOT;
     $table->prepare_items();
   
     $table->display();
-?>
-      <div style="text-align:right">
-        <p class="submit" style="float: right">
-        <?php submit_button( __( 'Update', 'ceceppaml' ), "button-primary", "action", false, 'class="button button-primary"' ); ?>
-        </p>
-      </div>
-<?php
+	}
+
+	function addon_content_featured() {
+		require_once( CML_PLUGIN_LAYOUTS_PATH . "class-mytranslations.php" );
+
+		$options = get_option( 'tc_theme_options', array() );
+		if( ! empty( $options ) ) {
+			foreach ( $options as $key => $value ) {
+				if( 'tc_featured_text_' == substr( $key, 0, 17 ) ||
+						'tc_featured_page_button_text' == $key ) {
+					CMLTranslations::add( "_customizr_featured_$key", $value, "_customizr_featured", true );
+				}
+			}
+		}
+
+    $table = new MyTranslations_Table( 
+    																	array( "_customizr_featured" => "CUSTOMIZR"
+    																	) );
+    $table->prepare_items();
+  
+    $table->display();
+    
+    $lkeys = array_keys( CMLLanguage::get_all() );
 	}
 
 	function translate_slide_text( $text, $id ) {
@@ -174,7 +238,7 @@ EOT;
 		return get_permalink( $linked );
 	}
 
-	function save() {
+	function save_media() {
 		if( ! wp_verify_nonce( $_POST[ "ceceppaml-nonce" ], "security" ) ) return;
 
 		$labels = array( 
@@ -197,6 +261,123 @@ EOT;
 				}
 			}
 		}
+	}
+
+	function save_featured() {
+		if( ! wp_verify_nonce( $_POST[ "ceceppaml-nonce" ], "security" ) ) return;
+
+    global $wpdb;
+
+    $langs = CMLLanguage::get_no_default();
+    $max = count( $_POST[ 'id' ] );
+
+    for( $i = 0; $i < $max; $i++ ) {
+      //record id
+      $id = intval( $_POST[ 'id' ][ $i ] );
+      $text = esc_attr( $_POST[ 'string' ][ $i ] );
+      $group = esc_attr( $_POST[ 'group' ][ $i ] );
+
+      foreach( $langs as $lang ) {
+        $value = esc_attr( $_POST[ 'values' ][ $lang->id ][ $i ] );
+
+        CMLTranslations::set( $lang->id,
+                            $text,
+                            $value,
+                            $group );
+      }
+    }
+
+    if( isset( $_POST[ 'delete' ] ) ) {
+      $max = count( @$_POST[ 'delete' ] );
+      for( $i = 0; $i < $max; $i++ ) {
+        $wpdb->delete( CECEPPA_ML_TRANSLATIONS,
+                      array(
+                        'cml_text' => bin2hex( $_POST[ 'delete' ][ $i ] ),
+                      ),
+                      array(
+                        '%s'
+                      )
+                     );
+      }
+    }
+
+    //generate .po
+    cml_generate_mo_from_translations( "S", true );
+	}
+
+	function featured_link( $permalink, $single_id ) {
+		if( ! defined( 'CECEPPA_DB_VERSION' ) || CMLLanguage::is_default()  ) return $permalink;
+
+		$id = tc__f( '__get_option' , 'tc_featured_page_' . $single_id );
+
+		$tid = CMLPost::get_translation( CMLLanguage::get_current_id(),
+																			$id );
+
+			if( $tid == $id ) return $permalink;
+
+		return get_permalink( $tid );
+	}
+
+	function featured_title( $title, $fp_single_id, $featured_page_id ) {
+		if( ! defined( 'CECEPPA_DB_VERSION' ) || CMLLanguage::is_default()  ) return $title;
+
+		$tid = CMLPost::get_translation( CMLLanguage::get_current_id(),
+																			$featured_page_id );
+
+		if( $tid == $featured_page_id ) return $title;
+
+		return get_the_title( $tid );
+	}
+
+	function featured_text( $text, $fp_single_id, $featured_page_id ) {
+		if( ! defined( 'CECEPPA_DB_VERSION' ) || CMLLanguage::is_default() ) return $text;
+
+		if( null == CMLUtils::_get( '_customizr_options' ) ) {
+			$options = get_option( 'tc_theme_options', array() );
+			CMLUtils::_set( '_customizr_options', $options );
+		} else {
+			$options = CMLUtils::_get( '_customizr_options' );
+		}
+
+		$tid = CMLPost::get_translation( CMLLanguage::get_current_id(),
+																			$featured_page_id );
+
+		if( $tid == $featured_page_id ) return $text;
+
+		if( isset( $options[ 'tc_featured_text_' . $fp_single_id ] ) ) {
+			$v = CMLTranslations::get( CMLLanguage::get_current_id(),
+																			'_customizr_featured_tc_featured_text_' . $fp_single_id,
+																			'_customizr_featured', true );
+			if( ! empty( $v ) ) return $v;
+		}
+
+		if( $tid > 0 ) {
+			$page = get_post( $tid );
+
+			$excerpt = ( ! empty( $page->post_excerpt ) ) ? $page->post_excerpt : $page->post_content;
+
+			return apply_filters( 'the_content' , $excerpt );
+		} else {
+			return $text;
+		}
+	}
+
+	function translate_featured_button_text( $text, $id ) {
+		if( ! defined( 'CECEPPA_DB_VERSION' ) ||
+			CMLLanguage::is_default() ) return $text;
+
+		$return = CMLTranslations::get( CMLLanguage::get_current_id(),
+										"_customizr_featured_tc_featured_page_button_text",
+										"_customizr_featured" );
+
+		return ( ! empty( $return ) ) ? $return : $text;
+	}
+
+	/*
+	 * I don't have to translate "featured" field for default language
+	 */
+	function hide_default( $array ) {
+		return array( '_customizr_featured' );
 	}
 }
 
